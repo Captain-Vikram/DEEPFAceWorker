@@ -6,3 +6,6 @@ mtcnn
 moviepy
 tqdm
 tf-keras
+matplotlib
+seaborn
+scipy
