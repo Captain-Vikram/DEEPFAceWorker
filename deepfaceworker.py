@@ -9,13 +9,16 @@ from moviepy import VideoFileClip
 import os
 from tqdm import tqdm  # For better progress tracking
 
-# Configure TensorFlow to use all CPU cores
-tf.config.threading.set_intra_op_parallelism_threads(multiprocessing.cpu_count())
-tf.config.threading.set_inter_op_parallelism_threads(multiprocessing.cpu_count())
-print(f"Using {multiprocessing.cpu_count()} CPU cores")
+MAX_CORES = 14
+num_cores = min(multiprocessing.cpu_count(), MAX_CORES)
+print(f"Using {num_cores} CPU cores out of {multiprocessing.cpu_count()} available cores")
 
-# Optimize OpenCV for multi-threading
-cv2.setNumThreads(multiprocessing.cpu_count())
+# Configure TensorFlow to use limited CPU cores
+tf.config.threading.set_intra_op_parallelism_threads(num_cores)
+tf.config.threading.set_inter_op_parallelism_threads(num_cores)
+
+# Optimize OpenCV for multi-threading with limited cores
+cv2.setNumThreads(num_cores)
 
 # Input and output video paths
 video_path = "input_video.mp4"
@@ -101,7 +104,7 @@ def main():
     frame_paths = [f"{temp_dir}/frame_{i:06d}.jpg" for i in range(total_frames)]
     
     # Process frames in parallel
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+    with multiprocessing.Pool(processes=num_cores) as pool:
         results = list(tqdm(pool.imap(process_frame, frame_paths), total=len(frame_paths)))
     
     # Create output video
@@ -131,7 +134,7 @@ def main():
             final_video.write_videofile(final_output_path, 
                                       codec="libx264", 
                                       audio_codec="aac",
-                                      threads=multiprocessing.cpu_count())
+                                      threads=num_cores)
             processed_video.close()
             final_video.close()
             print(f"✅ Final video with audio saved to {final_output_path}")
